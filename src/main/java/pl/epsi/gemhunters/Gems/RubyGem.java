@@ -21,13 +21,13 @@ public class RubyGem {
     public void leftClick(Player p) {
         GemstoneRegistry registry = GemstoneRegistry.getInstance();
         UUID uuid = p.getUniqueId();
-        if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 4)) {
+        if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 1)) {
             Effects effects = new Effects();
             int rubyID = effects.rubyShield(p, Particle.FLAME, 2, 25);
             scheduler.runTaskLater(plugin, () -> {
                 effects.stopTask(rubyID);
             }, 10 * 20);
-            registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 4);
+            registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 1);
         }
     }
 
@@ -35,16 +35,16 @@ public class RubyGem {
         GemstoneRegistry registry = GemstoneRegistry.getInstance();
         UUID uuid = p.getUniqueId();
         if (p.isSneaking()) {
-            if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 5)) {
+            if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 2)) {
                 p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 30 * 20, 1, true, true, true));
                 p.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 30 * 20, 1, true, true, true));
                 p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 30 * 20, 1, true, true, true));
-                registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 5);
+                registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 2);
             }
         } else {
-            if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 3)) {
+            if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 0)) {
                 p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 3 * 20, 1, true, true, true));
-                registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 3);
+                registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 0);
             }
         }
     }

@@ -43,18 +43,12 @@ public class GemListener implements Listener {
         if (i == null) return;
         if (!i.hasItemMeta()) return;
         String itemName = i.getItemMeta().getDisplayName();
-        p.sendMessage("event");
         if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) {
-            p.sendMessage("left click air or block");
             for (ItemStack gemstone : gemstones) {
                 if(i.getItemMeta().getDisplayName().equalsIgnoreCase(gemstone.getItemMeta().getDisplayName())) {
-                    p.sendMessage("name == name in list");
                     if (itemName.contains("Opal")) {
-                        // cd
                         opal.leftClick(p);
                     } else if (itemName.contains("Ruby")) {
-                        p.sendMessage("ruby");
-                        // cd
                         ruby.leftClick(p);
                     }
                     event.setCancelled(true);
@@ -76,12 +70,9 @@ public class GemListener implements Listener {
                 if(i.getItemMeta().getDisplayName().equalsIgnoreCase(gemstone.getItemMeta().getDisplayName())) {
                     event.setCancelled(true);
                     if (itemName.contains("Opal")) {
-                        // cooldown
                         opal.rightClick(p);
                     }
                     if (itemName.contains("Ruby")) {
-                        // cooldown
-                        p.sendMessage("ruby");
                         ruby.rightClick(p);
                     }
                 }
