@@ -1,0 +1,7 @@
+name: GemHunters
+version: '${project.version}'
+main: pl.epsi.gemhunters.Main
+api-version: 1.19
+authors: [ tolek_tpr ]
+commands:
+    clearlist:
