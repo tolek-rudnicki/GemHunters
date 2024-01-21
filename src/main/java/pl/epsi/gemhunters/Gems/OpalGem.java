@@ -12,6 +12,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.checkerframework.checker.units.qual.C;
 import pl.epsi.gemhunters.GemstoneRegistry;
 import pl.epsi.gemhunters.Main;
+import pl.epsi.gemhunters.Utils;
 
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +33,8 @@ public class OpalGem {
                 p.setInvulnerable(false);
             }, 15 * 20);
             p.setInvulnerable(true);
+
+            p.sendMessage(Utils.colorize("&7[&f❂&7] You used > &fPhantom Dash!"));
             registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 1);
         }
     }
@@ -65,6 +68,8 @@ public class OpalGem {
                     });
                     p.setInvulnerable(false);
                 }, 60 * 20);
+
+                p.sendMessage(Utils.colorize("&7[&f❂&7] You used > &fCelestial Vanish!"));
                 registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 2);
             }
         } else {
@@ -74,6 +79,8 @@ public class OpalGem {
                 }, 8 * 20);
                 p.setInvulnerable(true);
                 p.setVelocity(p.getLocation().getDirection().multiply(2).setY(1.5));
+
+                p.sendMessage(Utils.colorize("&7[&f❂&7] You used > &fLight As A Feather!"));
                 registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 0);
             }
         }

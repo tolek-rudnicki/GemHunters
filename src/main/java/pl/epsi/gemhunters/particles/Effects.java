@@ -39,6 +39,81 @@ public class Effects {
         return taskID;
     }
 
+    public int amethystAbility1(Entity p, Particle particle) {
+        taskID = Bukkit.getScheduler().scheduleSyncRepeatingTask(Main.getPlugin(Main.class), new Runnable() {
+
+            double var = 0;
+            Location loc, first, second;
+            ParticleData data = new ParticleData(p.getUniqueId());
+
+            @Override
+            public void run() {
+                if(!data.hasID()) { data.setID(taskID); return; }
+                var += Math.PI / 16;
+                loc = p.getLocation();
+
+                first = loc.clone().add(Math.cos(var), Math.sin(var) + 1, Math.sin(var));
+                second = loc.clone().add(Math.cos(var + Math.PI), Math.sin(var) + 1, Math.sin(var + Math.PI));
+
+                p.getWorld().spawnParticle(particle, first, 0);
+                p.getWorld().spawnParticle(particle, second, 0);
+            }
+
+        }, 0, 1);
+        return taskID;
+    }
+
+    public int amethystAbility3(Entity p, Particle particle) {
+        taskID = scheduler.scheduleSyncRepeatingTask(plugin, new Runnable() {
+            double radius = 2;
+            double radiusStep = 0.005;
+            double angle = 0;
+            boolean isContracting = true;
+            @Override
+            public void run() {
+                Location location = p.getLocation();
+
+                if (angle < 2 * Math.PI) {
+                    double x = radius * Math.cos(angle);
+                    double z = radius * Math.sin(angle);
+
+                    Location particleLocation = location.clone().add(x, 0.85, z);
+
+                    p.getWorld().spawnParticle(particle, particleLocation, 0);
+
+                    angle += 0.1; // Adjust the angle increment for slower rendering
+                    if (isContracting) {
+                        radius -=radiusStep;
+                        if (radius <= 0.5) {
+                            isContracting = false;
+                        }
+                    } else {
+                        radius += radiusStep;
+                        if (radius >= 2.0) {
+                            isContracting = true;
+                        }
+                    }
+                } else {
+                    // Adjust the radius for contracting and expanding movements
+                    if (isContracting) {
+                        radius -= radiusStep;
+                        if (radius <= 0.5) {
+                            isContracting = false;
+                        }
+                    } else {
+                        radius += radiusStep;
+                        if (radius >= 2.0) {
+                            isContracting = true;
+                        }
+                    }
+                    angle = 0.0; // Reset angle for the next iteration
+                }
+            }
+
+    }, 0, 1);
+        return taskID;
+    }
+
     public int startCircle(Entity player, Particle particles, int radius) {
         taskID = Bukkit.getScheduler().scheduleSyncRepeatingTask(Main.getPlugin(Main.class), new Runnable() {
             double var = 0;

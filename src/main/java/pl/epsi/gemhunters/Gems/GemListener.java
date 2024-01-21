@@ -4,10 +4,13 @@ import fr.skytasul.glowingentities.GlowingEntities;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -20,6 +23,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitScheduler;
 import pl.epsi.gemhunters.GemstoneProperty;
 import pl.epsi.gemhunters.GemstoneRegistry;
@@ -35,23 +39,84 @@ public class GemListener implements Listener {
     private Plugin plugin = Main.getPlugin(Main.class);
     private OpalGem opal = new OpalGem();
     private RubyGem ruby = new RubyGem();
+    private AmethystGem amethyst = new AmethystGem();
+    private JasperGem jasper = new JasperGem();
+    private TopazGem topaz = new TopazGem();
 
     @EventHandler
     public void onLeftClick(PlayerInteractEvent event) {
-        ItemStack i = event.getItem();
         Player p = event.getPlayer();
-        if (i == null) return;
-        if (!i.hasItemMeta()) return;
-        String itemName = i.getItemMeta().getDisplayName();
-        if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) {
-            for (ItemStack gemstone : gemstones) {
-                if(i.getItemMeta().getDisplayName().equalsIgnoreCase(gemstone.getItemMeta().getDisplayName())) {
-                    if (itemName.contains("Opal")) {
-                        opal.leftClick(p);
-                    } else if (itemName.contains("Ruby")) {
-                        ruby.leftClick(p);
+
+        if (isHoldingGem(p)) {
+            ItemStack i = getHeldGem(p);
+            if (i == null) return;
+            if (!i.hasItemMeta()) return;
+            String itemName = i.getItemMeta().getDisplayName();
+            if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) {
+                for (ItemStack gemstone : gemstones) {
+                    if(i.getItemMeta().getDisplayName().equalsIgnoreCase(gemstone.getItemMeta().getDisplayName())) {
+                        if (itemName.contains("Opal")) {
+                            opal.leftClick(p);
+                        } else if (itemName.contains("Ruby")) {
+                            ruby.leftClick(p);
+                        } else if (itemName.contains("Amethyst")) {
+                            amethyst.leftClick(p);
+                        } else if (itemName.contains("Jasper")) {
+                            jasper.leftClick(p);
+                        } else if (itemName.contains("Topaz")) {
+                            topaz.leftClick(p);
+                        }
+                        event.setCancelled(true);
                     }
-                    event.setCancelled(true);
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    public void onDamage(EntityDamageByEntityEvent event) {
+        if (event.getEntity() instanceof Player && event.getDamager() instanceof LivingEntity) {
+            Player p = (Player) event.getEntity();
+            LivingEntity livingEntity = (LivingEntity) event.getDamager();
+
+            if (ruby.playerInList(p)) {
+                livingEntity.damage(event.getDamage());
+                p.sendMessage("&7[&c❤&7] Your &cReflective Shield&7 reflected the attack!");
+                event.setCancelled(true);
+            } else if (amethyst.playerInAbility1(p)) {
+                event.setDamage(event.getDamage() * 0.75);
+                p.sendMessage(Utils.colorize("&7[&5❈&7] Your &5amethyst gem&7 reduced your damage by 25%!"));
+            } else if (topaz.playerInAbility2(p)) {
+                topaz.ability2Boost(p);
+                if (!topaz.boosted(p)) {
+                    p.sendMessage(Utils.colorize("&7[&e✧&7] Your &etopaz gem&7 gave you +2 Hearts"));
+                }
+            }
+        } else if (event.getEntity() instanceof Player && event.getDamager() instanceof Arrow) {
+            Player p = (Player) event.getEntity();
+            Arrow arrow = (Arrow) event.getDamager();
+
+            if (amethyst.playerInAbility2(p)) {
+                if (Math.round(Math.random()) == 1) {
+                    if (arrow.getShooter() instanceof LivingEntity) {
+                        ((LivingEntity) arrow.getShooter()).damage(event.getDamage());
+                        p.sendMessage(Utils.colorize("&7[&5❈&7] Your &5Reflection Prism &7ability reflected the damage to " +
+                                "the attacker!"));
+                        event.setCancelled(true);
+                    }
+                }
+            }
+        } else if (event.getDamager() instanceof Player && event.getEntity() instanceof LivingEntity) {
+            Player p = (Player) event.getDamager();
+            LivingEntity e = (LivingEntity) event.getEntity();
+
+            if (jasper.playerInAbility2(p)) {
+                if (jasper.getHitsInAbility2(p) > 1) {
+                    event.setDamage(event.getDamage() * 1.25);
+                    jasper.incrementHits(p);
+                } else {
+                    event.setDamage(event.getDamage() * 1.5);
+                    jasper.incrementHits(p);
                 }
             }
         }
@@ -74,6 +139,12 @@ public class GemListener implements Listener {
                     }
                     if (itemName.contains("Ruby")) {
                         ruby.rightClick(p);
+                    } else if (itemName.contains("Amethyst")) {
+                        amethyst.rightClick(p);
+                    } else if (itemName.contains("Jasper")) {
+                        jasper.rightClick(p);
+                    } else if (itemName.contains("Topaz")) {
+                        topaz.rightClick(p);
                     }
                 }
             }
@@ -205,6 +276,26 @@ public class GemListener implements Listener {
         return false;
     }
 
+    public ItemStack getHeldGem(Player p) {
+        if (isHoldingGem(p)) {
+            ItemStack item1 = p.getInventory().getItemInMainHand();
+            ItemStack item2 = p.getInventory().getItemInOffHand();
+
+            if ((item1 == null || item1.hasItemMeta() != true) && (item2 == null || item2.hasItemMeta() != true)) return null;
+
+            for (ItemStack gemstone : gemstones) {
+                if ((item1.hasItemMeta() && item1.getItemMeta().getDisplayName().equalsIgnoreCase(gemstone.getItemMeta().getDisplayName()))) {
+                    return item1;
+                }
+                if ((item2.hasItemMeta() && item2.getItemMeta().getDisplayName().equalsIgnoreCase(gemstone.getItemMeta().getDisplayName()))) {
+                    return item2;
+                }
+            }
+            return null;
+        }
+        return null;
+    }
+
     public static String formatTime(long seconds1) {
         StringBuilder formattedTime = new StringBuilder();
 
@@ -300,7 +391,7 @@ public class GemListener implements Listener {
         rubyLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
         rubyLore.add(ChatColor.GOLD + "Ability: Reflective Shield " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
         rubyLore.add(ChatColor.GRAY + "Creates a shield around you, which");
-        rubyLore.add(ChatColor.GRAY + "can reflect some of the attacks back");
+        rubyLore.add(ChatColor.GRAY + "will reflect attacks back");
         rubyLore.add(ChatColor.GRAY + "to the attacker for 10 seconds.");
         rubyLore.add(" ");
         rubyLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
@@ -317,16 +408,24 @@ public class GemListener implements Listener {
         // AMETHYST
         List<String> amethystLore = new ArrayList<>();
         amethystLore.add(" ");
-        amethystLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        amethystLore.add(ChatColor.GRAY + "Boost you in to the air!");
+        amethystLore.add(ChatColor.GOLD + "Ability: Guardian's Embrace " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
+        amethystLore.add(ChatColor.GRAY + "Creates a particle effect around");
+        amethystLore.add(ChatColor.GRAY + "the player, which reduces incoming damage");
+        amethystLore.add(ChatColor.GRAY + "by 25% and disappears after 5s or when ");
+        amethystLore.add(ChatColor.GRAY + "enough damage is dealt.");
         amethystLore.add(" ");
         amethystLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        amethystLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        amethystLore.add(ChatColor.GRAY + "Boost you in to the air!");
+        amethystLore.add(ChatColor.GOLD + "Ability: Reflection Prism " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
+        amethystLore.add(ChatColor.GRAY + "Creates a reflective prism that hovers");
+        amethystLore.add(ChatColor.GRAY + "above the player and has a 50% chance");
+        amethystLore.add(ChatColor.GRAY + "to reflect ranged attacks back to the ");
+        amethystLore.add(ChatColor.GRAY + "attacker.");
         amethystLore.add(" ");
         amethystLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        amethystLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        amethystLore.add(ChatColor.GRAY + "Boost you in to the air!");
+        amethystLore.add(ChatColor.GOLD + "Ability: Fortifying Aura " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
+        amethystLore.add(ChatColor.GRAY + "Summons an aura that grants increased");
+        amethystLore.add(ChatColor.GRAY + "damage resistance for all players within");
+        amethystLore.add(ChatColor.GRAY + "the particle circle.");
         amethystLore.add(" ");
         amethystLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
         amethystLore.add(" ");
@@ -334,19 +433,27 @@ public class GemListener implements Listener {
         amethystLore.add(ChatColor.DARK_PURPLE + "which gives you negative potion effects");
         amethystLore.add(ChatColor.DARK_PURPLE + "that you can get rid of, by crafting a new gem");
         amethystLore.add(ChatColor.DARK_PURPLE + "in the Gemstone Grinder!");
-        // JASPER
+        // JASPER // 3 adds the glowing effect to playeres within 8b + str
         List<String> jasperLore = new ArrayList<>();
         jasperLore.add(" ");
-        jasperLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        jasperLore.add(ChatColor.GRAY + "Boost you in to the air!");
+        jasperLore.add(ChatColor.GOLD + "Ability: Frenzied Assault " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
+        jasperLore.add(ChatColor.GRAY + "Unleash a frenzied assault, giving the");
+        jasperLore.add(ChatColor.GRAY + "player strength 1 and speed 1 for 5s");
         jasperLore.add(" ");
         jasperLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        jasperLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        jasperLore.add(ChatColor.GRAY + "Boost you in to the air!");
+        jasperLore.add(ChatColor.GOLD + "Ability: Mighty Strike " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
+        jasperLore.add(ChatColor.GRAY + "Unleash a powerfull attack for 3 hits");
+        jasperLore.add(ChatColor.GRAY + "where the 1st hit deals +50% more");
+        jasperLore.add(ChatColor.GRAY + "damage, and the 2nd and the 3rd deal");
+        jasperLore.add(ChatColor.GRAY + "+25% damage.");
         jasperLore.add(" ");
         jasperLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        jasperLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        jasperLore.add(ChatColor.GRAY + "Boost you in to the air!");
+        jasperLore.add(ChatColor.GOLD + "Ability: Brutal Aura " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
+        jasperLore.add(ChatColor.GRAY + "Creates an aura around the player");
+        jasperLore.add(ChatColor.GRAY + "where anyone within 8 block of the player");
+        jasperLore.add(ChatColor.GRAY + "will get strength 1 and the player will");
+        jasperLore.add(ChatColor.GRAY + "get strength 2, while also making everyone");
+        jasperLore.add(ChatColor.GRAY + "in the aura glow for 30s!");
         jasperLore.add(" ");
         jasperLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
         jasperLore.add(" ");
@@ -357,16 +464,25 @@ public class GemListener implements Listener {
         // TOPAZ
         List<String> topazLore = new ArrayList<>();
         topazLore.add(" ");
-        topazLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        topazLore.add(ChatColor.GRAY + "Boost you in to the air!");
+        topazLore.add(ChatColor.GOLD + "Ability: Vitality Infusion " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
+        topazLore.add(ChatColor.GRAY + "Infuses you with radiant vitality, which");
+        topazLore.add(ChatColor.GRAY + "increases your max health, and provides");
+        topazLore.add(ChatColor.GRAY + "a regeneration increase.");
         topazLore.add(" ");
         topazLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        topazLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        topazLore.add(ChatColor.GRAY + "Boost you in to the air!");
+        topazLore.add(ChatColor.GOLD + "Ability: Joyful Surge " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
+        topazLore.add(ChatColor.GRAY + "When enabled, get a surge of speed and");
+        topazLore.add(ChatColor.GRAY + "a health boost when you get hit for ");
+        topazLore.add(ChatColor.GRAY + "15s.");
         topazLore.add(" ");
         topazLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        topazLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        topazLore.add(ChatColor.GRAY + "Boost you in to the air!");
+        topazLore.add(ChatColor.GOLD + "Ability: Joyful Resonance " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
+        topazLore.add(ChatColor.GRAY + "Creates a burst of positive energy");
+        topazLore.add(ChatColor.GRAY + "that grants every player within 5");
+        topazLore.add(ChatColor.GRAY + "blocks a speed boost and increased");
+        topazLore.add(ChatColor.GRAY + "health.");
+        topazLore.add(ChatColor.RED + "This effect will cancel 15s after ");
+        topazLore.add(ChatColor.RED + "using the ability if you don't get hit");
         topazLore.add(" ");
         topazLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
         topazLore.add(" ");

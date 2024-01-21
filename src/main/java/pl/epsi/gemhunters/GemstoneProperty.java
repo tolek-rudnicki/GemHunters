@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public class GemstoneProperty {
 
-    static int[] abilityCooldownTimeout = { 5 * 20, 60 * 20, 300 * 20 }; // in seconds; *20 means converting from ticks to seconds
+    static int[] abilityCooldownTimeout = { 10 * 20, 60 * 20, 300 * 20 }; // in seconds; *20 means converting from ticks to seconds
 
     private int gemId;
 
