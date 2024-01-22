@@ -20,10 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class AmethystGem {
+public class AmethystGem extends Gem {
 
-    private BukkitScheduler scheduler = Bukkit.getScheduler();
-    private Plugin plugin = Main.getPlugin(Main.class);
     private GlowingEntities glowingEntities = new GlowingEntities(plugin);
     private Map<UUID, Boolean> ability1 = new HashMap<>();
     private Map<UUID, Boolean> ability2 = new HashMap<>();
@@ -32,7 +30,61 @@ public class AmethystGem {
     private Map<UUID, Integer> ability2Scheduler = new HashMap<>();
     private Map<UUID, Integer> ability3Scheduler = new HashMap<>();
 
-    public void leftClick(Player p) {
+    public AmethystGem() {
+        super();
+
+        displayName = "Amethyst Gemstone";
+        itemColor = ChatColor.DARK_PURPLE;
+        material = Material.PURPLE_STAINED_GLASS;
+        customModelID = 10240;
+
+        lore.add(" ");
+        lore.add(ChatColor.GOLD + "Ability: Guardian's Embrace " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
+        lore.add(ChatColor.GRAY + "Creates a particle effect around");
+        lore.add(ChatColor.GRAY + "the player, which reduces incoming damage");
+        lore.add(ChatColor.GRAY + "by 25% and disappears after 5s or when ");
+        lore.add(ChatColor.GRAY + "enough damage is dealt.");
+        lore.add(" ");
+        lore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
+        lore.add(ChatColor.GOLD + "Ability: Reflection Prism " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
+        lore.add(ChatColor.GRAY + "Creates a reflective prism that hovers");
+        lore.add(ChatColor.GRAY + "above the player and has a 50% chance");
+        lore.add(ChatColor.GRAY + "to reflect ranged attacks back to the ");
+        lore.add(ChatColor.GRAY + "attacker.");
+        lore.add(" ");
+        lore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
+        lore.add(ChatColor.GOLD + "Ability: Fortifying Aura " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
+        lore.add(ChatColor.GRAY + "Summons an aura that grants increased");
+        lore.add(ChatColor.GRAY + "damage resistance for all players within");
+        lore.add(ChatColor.GRAY + "the particle circle.");
+        lore.add(" ");
+        lore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
+        lore.add(" ");
+        lore.add(ChatColor.DARK_PURPLE + "After 5 deaths, your gem shatters, ");
+        lore.add(ChatColor.DARK_PURPLE + "which gives you negative potion effects");
+        lore.add(ChatColor.DARK_PURPLE + "that you can get rid of, by crafting a new gem");
+        lore.add(ChatColor.DARK_PURPLE + "in the Gemstone Grinder!");
+    }
+
+    public void ability1(Player p) {
+        GemstoneRegistry registry = GemstoneRegistry.getInstance();
+        UUID uuid = p.getUniqueId();
+        if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 0)) {
+            Effects effects = new Effects();
+            ability1Effects.put(uuid, effects.amethystAbility1(p, Particle.DRAGON_BREATH));
+            ability1.put(p.getUniqueId(), true);
+
+            scheduler.runTaskLater(plugin, () -> {
+                effects.stopTask(ability1Effects.get(uuid));
+                ability1.remove(uuid);
+            }, 5 * 20);
+
+            p.sendMessage(Utils.colorize("&7[&5❈&7] You used > &5Guardian's Embrace!"));
+            registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 0);
+        }
+    }
+
+    public void ability2(Player p) {
         GemstoneRegistry registry = GemstoneRegistry.getInstance();
         UUID uuid = p.getUniqueId();
         if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 1)) {
@@ -72,46 +124,30 @@ public class AmethystGem {
         }
     }
 
-    public void rightClick(Player p) {
+    public void ability3(Player p) {
         GemstoneRegistry registry = GemstoneRegistry.getInstance();
         UUID uuid = p.getUniqueId();
-        if (p.isSneaking()) {
-            if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 2)) {
-                Effects effects = new Effects();
-                ability3Effects.put(uuid, effects.amethystAbility3(p, Particle.DRAGON_BREATH));
+        if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 2)) {
+            Effects effects = new Effects();
+            ability3Effects.put(uuid, effects.amethystAbility3(p, Particle.DRAGON_BREATH));
 
-                ability3Scheduler.put(uuid, scheduler.scheduleSyncRepeatingTask(plugin, () -> {
-                    p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 5*20, 1));
-                    List<Entity> nearby = p.getNearbyEntities(2, 2, 2);
-                    for (Entity e : nearby) {
-                        if (e instanceof LivingEntity) {
-                            ((LivingEntity) e).addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 5*20, 1));
-                        }
+            ability3Scheduler.put(uuid, scheduler.scheduleSyncRepeatingTask(plugin, () -> {
+                p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 5*20, 1));
+                List<Entity> nearby = p.getNearbyEntities(2, 2, 2);
+                for (Entity e : nearby) {
+                    if (e instanceof LivingEntity) {
+                        ((LivingEntity) e).addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 5*20, 1));
                     }
-                },0, 1));
+                }
+            },0, 1));
 
-                scheduler.runTaskLater(plugin, () -> {
-                    effects.stopTask(ability3Effects.get(uuid));
-                    scheduler.cancelTask(ability3Scheduler.get(uuid));
+            scheduler.runTaskLater(plugin, () -> {
+                effects.stopTask(ability3Effects.get(uuid));
+                scheduler.cancelTask(ability3Scheduler.get(uuid));
 
-                }, 60 * 20);
-                p.sendMessage(Utils.colorize("&7[&5❈&7] You used > &5Fortifying Aura!"));
-                registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 2);
-            }
-        } else {
-            if (registry.canUseAbility(uuid, registry.getPlayerGemID(uuid), 0)) {
-                Effects effects = new Effects();
-                ability1Effects.put(uuid, effects.amethystAbility1(p, Particle.DRAGON_BREATH));
-                ability1.put(p.getUniqueId(), true);
-
-                scheduler.runTaskLater(plugin, () -> {
-                    effects.stopTask(ability1Effects.get(uuid));
-                    ability1.remove(uuid);
-                }, 5 * 20);
-
-                p.sendMessage(Utils.colorize("&7[&5❈&7] You used > &5Guardian's Embrace!"));
-                registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 0);
-            }
+            }, 60 * 20);
+            p.sendMessage(Utils.colorize("&7[&5❈&7] You used > &5Fortifying Aura!"));
+            registry.doUseAbility(uuid, registry.getPlayerGemID(uuid), 2);
         }
     }
 

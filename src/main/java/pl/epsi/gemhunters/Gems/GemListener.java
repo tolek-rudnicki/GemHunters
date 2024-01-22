@@ -1,16 +1,13 @@
 package pl.epsi.gemhunters.Gems;
 
-import fr.skytasul.glowingentities.GlowingEntities;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -21,9 +18,6 @@ import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitScheduler;
 import pl.epsi.gemhunters.GemstoneProperty;
 import pl.epsi.gemhunters.GemstoneRegistry;
@@ -34,7 +28,8 @@ import java.util.*;
 
 public class GemListener implements Listener {
 
-    private List<ItemStack> gemstones;
+    private List<ItemStack> gemstones = new ArrayList<>();
+    private List<Gem> gems = new ArrayList<>();
     private BukkitScheduler scheduler = Bukkit.getScheduler();
     private Plugin plugin = Main.getPlugin(Main.class);
     private OpalGem opal = new OpalGem();
@@ -55,16 +50,11 @@ public class GemListener implements Listener {
             if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) {
                 for (ItemStack gemstone : gemstones) {
                     if(i.getItemMeta().getDisplayName().equalsIgnoreCase(gemstone.getItemMeta().getDisplayName())) {
-                        if (itemName.contains("Opal")) {
-                            opal.leftClick(p);
-                        } else if (itemName.contains("Ruby")) {
-                            ruby.leftClick(p);
-                        } else if (itemName.contains("Amethyst")) {
-                            amethyst.leftClick(p);
-                        } else if (itemName.contains("Jasper")) {
-                            jasper.leftClick(p);
-                        } else if (itemName.contains("Topaz")) {
-                            topaz.leftClick(p);
+                        for (Gem gem : gems) {
+                            if (gem.getDisplayName().equalsIgnoreCase(i.getItemMeta().getDisplayName())) {
+                                gem.ability2(p);
+                                return;
+                            }
                         }
                         event.setCancelled(true);
                     }
@@ -134,17 +124,16 @@ public class GemListener implements Listener {
             for (ItemStack gemstone : gemstones) {
                 if(i.getItemMeta().getDisplayName().equalsIgnoreCase(gemstone.getItemMeta().getDisplayName())) {
                     event.setCancelled(true);
-                    if (itemName.contains("Opal")) {
-                        opal.rightClick(p);
-                    }
-                    if (itemName.contains("Ruby")) {
-                        ruby.rightClick(p);
-                    } else if (itemName.contains("Amethyst")) {
-                        amethyst.rightClick(p);
-                    } else if (itemName.contains("Jasper")) {
-                        jasper.rightClick(p);
-                    } else if (itemName.contains("Topaz")) {
-                        topaz.rightClick(p);
+
+                    for (Gem gem : gems) {
+                        if (gem.getDisplayName().equalsIgnoreCase(itemName)) {
+                            if (p.isSneaking()) {
+                                gem.ability3(p);
+                            } else {
+                                gem.ability1(p);
+                            }
+                            return;
+                        }
                     }
                 }
             }
@@ -200,7 +189,7 @@ public class GemListener implements Listener {
     }
 
     @EventHandler
-    public void onPickUp(PlayerPickupItemEvent event) {
+    public void onPickUp(PlayerPickupItemEvent event) { // MAKE IT SO U CAN ONLY PICK UP UR TYPE OF GEM
         for (ItemStack gemstone : gemstones) {
             for (ItemStack item : event.getPlayer().getInventory()) {
                 if (item == null || !item.hasItemMeta()) continue;
@@ -324,7 +313,7 @@ public class GemListener implements Listener {
         return formattedString.toString().trim();
     }
 
-    public void gemstoneTimerDisplay() {
+    public void startGemstoneTimerDisplay() {
         GemstoneRegistry registry = GemstoneRegistry.getInstance();
 
         scheduler.scheduleSyncRepeatingTask(plugin, () -> {
@@ -353,225 +342,82 @@ public class GemListener implements Listener {
     }
 
     public void init() {
-        gemstoneTimerDisplay();
-        gemstones = new ArrayList<>();
+        gems.add(new OpalGem());
+        gems.add(new RubyGem());
+        gems.add(new AmethystGem());
+        gems.add(new JasperGem());
+        gems.add(new TopazGem());
 
-        // OPAL
-        List<String> opalLore = new ArrayList<>();
-        opalLore.add(" ");
-        opalLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        opalLore.add(ChatColor.GRAY + "Boost you in to the air, and gives you a little");
-        opalLore.add(ChatColor.GRAY + "invulnerability time after landing.");
-        opalLore.add(" ");
-        opalLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        opalLore.add(ChatColor.GOLD + "Ability: Phantom Dash " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        opalLore.add(ChatColor.GRAY + "Gives a burst of speed and jump boost,");
-        opalLore.add(ChatColor.GRAY + "whilst also granting immunity to the player");
-        opalLore.add(ChatColor.GRAY + "for 15 seconds.");
-        opalLore.add(" ");
-        opalLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        opalLore.add(ChatColor.GOLD + "Ability: Celestial Vanish " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        opalLore.add(ChatColor.GRAY + "Grants the user invisibility, immunity");
-        opalLore.add(ChatColor.GRAY + "and highlighting any players or mobs nearby for");
-        opalLore.add(ChatColor.GRAY + "1 minute.");
-        opalLore.add(" ");
-        opalLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-        opalLore.add(" ");
-        opalLore.add(ChatColor.WHITE + "After 5 deaths, your gem shatters, ");
-        opalLore.add(ChatColor.WHITE + "which gives you negative potion effects");
-        opalLore.add(ChatColor.WHITE + "that you can get rid of, by crafting a new gem");
-        opalLore.add(ChatColor.WHITE + "in the Gemstone Grinder!");
-        // RUBY
-        List<String> rubyLore = new ArrayList<>();
-        rubyLore.add(" ");
-        rubyLore.add(ChatColor.GOLD + "Ability: Pulse Of Vitality " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        rubyLore.add(ChatColor.GRAY + "Gives you a almost instant healing");
-        rubyLore.add(ChatColor.GRAY + "like effect.");
-        rubyLore.add(" ");
-        rubyLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        rubyLore.add(ChatColor.GOLD + "Ability: Reflective Shield " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        rubyLore.add(ChatColor.GRAY + "Creates a shield around you, which");
-        rubyLore.add(ChatColor.GRAY + "will reflect attacks back");
-        rubyLore.add(ChatColor.GRAY + "to the attacker for 10 seconds.");
-        rubyLore.add(" ");
-        rubyLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        rubyLore.add(ChatColor.GOLD + "Ability: Evasive Flare " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        rubyLore.add(ChatColor.GRAY + "Grants healing, strength, and speed");
-        rubyLore.add(ChatColor.GRAY + "effects that allow you to escape battles.");
-        rubyLore.add(" ");
-        rubyLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-        rubyLore.add(" ");
-        rubyLore.add(ChatColor.RED + "After 5 deaths, your gem shatters, ");
-        rubyLore.add(ChatColor.RED + "which gives you negative potion effects");
-        rubyLore.add(ChatColor.RED + "that you can get rid of, by crafting a new gem");
-        rubyLore.add(ChatColor.RED + "in the Gemstone Grinder!");
-        // AMETHYST
-        List<String> amethystLore = new ArrayList<>();
-        amethystLore.add(" ");
-        amethystLore.add(ChatColor.GOLD + "Ability: Guardian's Embrace " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        amethystLore.add(ChatColor.GRAY + "Creates a particle effect around");
-        amethystLore.add(ChatColor.GRAY + "the player, which reduces incoming damage");
-        amethystLore.add(ChatColor.GRAY + "by 25% and disappears after 5s or when ");
-        amethystLore.add(ChatColor.GRAY + "enough damage is dealt.");
-        amethystLore.add(" ");
-        amethystLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        amethystLore.add(ChatColor.GOLD + "Ability: Reflection Prism " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        amethystLore.add(ChatColor.GRAY + "Creates a reflective prism that hovers");
-        amethystLore.add(ChatColor.GRAY + "above the player and has a 50% chance");
-        amethystLore.add(ChatColor.GRAY + "to reflect ranged attacks back to the ");
-        amethystLore.add(ChatColor.GRAY + "attacker.");
-        amethystLore.add(" ");
-        amethystLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        amethystLore.add(ChatColor.GOLD + "Ability: Fortifying Aura " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        amethystLore.add(ChatColor.GRAY + "Summons an aura that grants increased");
-        amethystLore.add(ChatColor.GRAY + "damage resistance for all players within");
-        amethystLore.add(ChatColor.GRAY + "the particle circle.");
-        amethystLore.add(" ");
-        amethystLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-        amethystLore.add(" ");
-        amethystLore.add(ChatColor.DARK_PURPLE + "After 5 deaths, your gem shatters, ");
-        amethystLore.add(ChatColor.DARK_PURPLE + "which gives you negative potion effects");
-        amethystLore.add(ChatColor.DARK_PURPLE + "that you can get rid of, by crafting a new gem");
-        amethystLore.add(ChatColor.DARK_PURPLE + "in the Gemstone Grinder!");
-        // JASPER // 3 adds the glowing effect to playeres within 8b + str
-        List<String> jasperLore = new ArrayList<>();
-        jasperLore.add(" ");
-        jasperLore.add(ChatColor.GOLD + "Ability: Frenzied Assault " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        jasperLore.add(ChatColor.GRAY + "Unleash a frenzied assault, giving the");
-        jasperLore.add(ChatColor.GRAY + "player strength 1 and speed 1 for 5s");
-        jasperLore.add(" ");
-        jasperLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        jasperLore.add(ChatColor.GOLD + "Ability: Mighty Strike " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        jasperLore.add(ChatColor.GRAY + "Unleash a powerfull attack for 3 hits");
-        jasperLore.add(ChatColor.GRAY + "where the 1st hit deals +50% more");
-        jasperLore.add(ChatColor.GRAY + "damage, and the 2nd and the 3rd deal");
-        jasperLore.add(ChatColor.GRAY + "+25% damage.");
-        jasperLore.add(" ");
-        jasperLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        jasperLore.add(ChatColor.GOLD + "Ability: Brutal Aura " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        jasperLore.add(ChatColor.GRAY + "Creates an aura around the player");
-        jasperLore.add(ChatColor.GRAY + "where anyone within 8 block of the player");
-        jasperLore.add(ChatColor.GRAY + "will get strength 1 and the player will");
-        jasperLore.add(ChatColor.GRAY + "get strength 2, while also making everyone");
-        jasperLore.add(ChatColor.GRAY + "in the aura glow for 30s!");
-        jasperLore.add(" ");
-        jasperLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-        jasperLore.add(" ");
-        jasperLore.add(ChatColor.LIGHT_PURPLE + "After 5 deaths, your gem shatters, ");
-        jasperLore.add(ChatColor.LIGHT_PURPLE + "which gives you negative potion effects");
-        jasperLore.add(ChatColor.LIGHT_PURPLE + "that you can get rid of, by crafting a new gem");
-        jasperLore.add(ChatColor.LIGHT_PURPLE + "in the Gemstone Grinder!");
-        // TOPAZ
-        List<String> topazLore = new ArrayList<>();
-        topazLore.add(" ");
-        topazLore.add(ChatColor.GOLD + "Ability: Vitality Infusion " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        topazLore.add(ChatColor.GRAY + "Infuses you with radiant vitality, which");
-        topazLore.add(ChatColor.GRAY + "increases your max health, and provides");
-        topazLore.add(ChatColor.GRAY + "a regeneration increase.");
-        topazLore.add(" ");
-        topazLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        topazLore.add(ChatColor.GOLD + "Ability: Joyful Surge " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        topazLore.add(ChatColor.GRAY + "When enabled, get a surge of speed and");
-        topazLore.add(ChatColor.GRAY + "a health boost when you get hit for ");
-        topazLore.add(ChatColor.GRAY + "15s.");
-        topazLore.add(" ");
-        topazLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        topazLore.add(ChatColor.GOLD + "Ability: Joyful Resonance " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        topazLore.add(ChatColor.GRAY + "Creates a burst of positive energy");
-        topazLore.add(ChatColor.GRAY + "that grants every player within 5");
-        topazLore.add(ChatColor.GRAY + "blocks a speed boost and increased");
-        topazLore.add(ChatColor.GRAY + "health.");
-        topazLore.add(ChatColor.RED + "This effect will cancel 15s after ");
-        topazLore.add(ChatColor.RED + "using the ability if you don't get hit");
-        topazLore.add(" ");
-        topazLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-        topazLore.add(" ");
-        topazLore.add(ChatColor.YELLOW + "After 5 deaths, your gem shatters, ");
-        topazLore.add(ChatColor.YELLOW + "which gives you negative potion effects");
-        topazLore.add(ChatColor.YELLOW + "that you can get rid of, by crafting a new gem");
-        topazLore.add(ChatColor.YELLOW + "in the Gemstone Grinder!");
-        // JADE
-        List<String> jadeLore = new ArrayList<>();
-        jadeLore.add(" ");
-        jadeLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        jadeLore.add(ChatColor.GRAY + "Boost you in to the air!");
-        jadeLore.add(" ");
-        jadeLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        jadeLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        jadeLore.add(ChatColor.GRAY + "Boost you in to the air!");
-        jadeLore.add(" ");
-        jadeLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        jadeLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        jadeLore.add(ChatColor.GRAY + "Boost you in to the air!");
-        jadeLore.add(" ");
-        jadeLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-        jadeLore.add(" ");
-        jadeLore.add(ChatColor.GREEN + "After 5 deaths, your gem shatters, ");
-        jadeLore.add(ChatColor.GREEN + "which gives you negative potion effects");
-        jadeLore.add(ChatColor.GREEN + "that you can get rid of, by crafting a new gem");
-        jadeLore.add(ChatColor.GREEN + "in the Gemstone Grinder!");
-        // AMBER
-        List<String> amberLore = new ArrayList<>();
-        amberLore.add(" ");
-        amberLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        amberLore.add(ChatColor.GRAY + "Boost you in to the air!");
-        amberLore.add(" ");
-        amberLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        amberLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        amberLore.add(ChatColor.GRAY + "Boost you in to the air!");
-        amberLore.add(" ");
-        amberLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        amberLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        amberLore.add(ChatColor.GRAY + "Boost you in to the air!");
-        amberLore.add(" ");
-        amberLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-        amberLore.add(" ");
-        amberLore.add(ChatColor.GOLD + "After 5 deaths, your gem shatters, ");
-        amberLore.add(ChatColor.GOLD + "which gives you negative potion effects");
-        amberLore.add(ChatColor.GOLD + "that you can get rid of, by crafting a new gem");
-        amberLore.add(ChatColor.GOLD + "in the Gemstone Grinder!");
-        // SAPPHIRE
-        List<String> sapphireLore = new ArrayList<>();
-        sapphireLore.add(" ");
-        sapphireLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-        sapphireLore.add(ChatColor.GRAY + "Boost you in to the air!");
-        sapphireLore.add(" ");
-        sapphireLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-        sapphireLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-        sapphireLore.add(ChatColor.GRAY + "Boost you in to the air!");
-        sapphireLore.add(" ");
-        sapphireLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-        sapphireLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-        sapphireLore.add(ChatColor.GRAY + "Boost you in to the air!");
-        sapphireLore.add(" ");
-        sapphireLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-        sapphireLore.add(" ");
-        sapphireLore.add(ChatColor.BLUE + "After 5 deaths, your gem shatters, ");
-        sapphireLore.add(ChatColor.BLUE + "which gives you negative potion effects");
-        sapphireLore.add(ChatColor.BLUE + "that you can get rid of, by crafting a new gem");
-        sapphireLore.add(ChatColor.BLUE + "in the Gemstone Grinder!");
+        for (Gem gem : gems) {
+            gemstones.add(gem.generateItemStack());
+        }
 
-        gemstones.add(generateGem("Opal Gemstone", opalLore, ChatColor.WHITE, Material.WHITE_STAINED_GLASS, 10240));
-        gemstones.add(generateGem("Ruby Gemstone", rubyLore, ChatColor.RED, Material.RED_STAINED_GLASS, 10240));
-        gemstones.add(generateGem("Amethyst Gemstone", amethystLore, ChatColor.DARK_PURPLE, Material.PURPLE_STAINED_GLASS, 10240));
-        gemstones.add(generateGem("Jasper Gemstone", jasperLore, ChatColor.LIGHT_PURPLE, Material.MAGENTA_STAINED_GLASS, 10240));
-        gemstones.add(generateGem("Topaz Gemstone", topazLore, ChatColor.YELLOW, Material.YELLOW_STAINED_GLASS, 10240));
-        gemstones.add(generateGem("Jade Gemstone", jadeLore, ChatColor.GREEN, Material.LIME_STAINED_GLASS, 10240));
-        gemstones.add(generateGem("Amber Gemstone", amberLore, ChatColor.GOLD, Material.ORANGE_STAINED_GLASS, 10240));
-        gemstones.add(generateGem("Sapphire Gemstone", sapphireLore, ChatColor.BLUE, Material.BLUE_STAINED_GLASS, 10240));
-    }
+        startGemstoneTimerDisplay();
 
-    public ItemStack generateGem(String name, List<String> lore, ChatColor itemColor, Material mat, int customModelID) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
+//        // JADE
+//        List<String> jadeLore = new ArrayList<>();
+//        jadeLore.add(" ");
+//        jadeLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
+//        jadeLore.add(ChatColor.GRAY + "Boost you in to the air!");
+//        jadeLore.add(" ");
+//        jadeLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
+//        jadeLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
+//        jadeLore.add(ChatColor.GRAY + "Boost you in to the air!");
+//        jadeLore.add(" ");
+//        jadeLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
+//        jadeLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
+//        jadeLore.add(ChatColor.GRAY + "Boost you in to the air!");
+//        jadeLore.add(" ");
+//        jadeLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
+//        jadeLore.add(" ");
+//        jadeLore.add(ChatColor.GREEN + "After 5 deaths, your gem shatters, ");
+//        jadeLore.add(ChatColor.GREEN + "which gives you negative potion effects");
+//        jadeLore.add(ChatColor.GREEN + "that you can get rid of, by crafting a new gem");
+//        jadeLore.add(ChatColor.GREEN + "in the Gemstone Grinder!");
+//        // AMBER
+//        List<String> amberLore = new ArrayList<>();
+//        amberLore.add(" ");
+//        amberLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
+//        amberLore.add(ChatColor.GRAY + "Boost you in to the air!");
+//        amberLore.add(" ");
+//        amberLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
+//        amberLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
+//        amberLore.add(ChatColor.GRAY + "Boost you in to the air!");
+//        amberLore.add(" ");
+//        amberLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
+//        amberLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
+//        amberLore.add(ChatColor.GRAY + "Boost you in to the air!");
+//        amberLore.add(" ");
+//        amberLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
+//        amberLore.add(" ");
+//        amberLore.add(ChatColor.GOLD + "After 5 deaths, your gem shatters, ");
+//        amberLore.add(ChatColor.GOLD + "which gives you negative potion effects");
+//        amberLore.add(ChatColor.GOLD + "that you can get rid of, by crafting a new gem");
+//        amberLore.add(ChatColor.GOLD + "in the Gemstone Grinder!");
+//        // SAPPHIRE
+//        List<String> sapphireLore = new ArrayList<>();
+//        sapphireLore.add(" ");
+//        sapphireLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
+//        sapphireLore.add(ChatColor.GRAY + "Boost you in to the air!");
+//        sapphireLore.add(" ");
+//        sapphireLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
+//        sapphireLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
+//        sapphireLore.add(ChatColor.GRAY + "Boost you in to the air!");
+//        sapphireLore.add(" ");
+//        sapphireLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
+//        sapphireLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
+//        sapphireLore.add(ChatColor.GRAY + "Boost you in to the air!");
+//        sapphireLore.add(" ");
+//        sapphireLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
+//        sapphireLore.add(" ");
+//        sapphireLore.add(ChatColor.BLUE + "After 5 deaths, your gem shatters, ");
+//        sapphireLore.add(ChatColor.BLUE + "which gives you negative potion effects");
+//        sapphireLore.add(ChatColor.BLUE + "that you can get rid of, by crafting a new gem");
+//        sapphireLore.add(ChatColor.BLUE + "in the Gemstone Grinder!");
 
-        meta.setDisplayName(itemColor + name);
-        meta.setLore(lore);
-        meta.setCustomModelData(customModelID);
-
-        item.setItemMeta(meta);
-
-        return item;
+//        gemstones.add(generateGem("Jade Gemstone", jadeLore, ChatColor.GREEN, Material.LIME_STAINED_GLASS, 10240));
+//        gemstones.add(generateGem("Amber Gemstone", amberLore, ChatColor.GOLD, Material.ORANGE_STAINED_GLASS, 10240));
+//        gemstones.add(generateGem("Sapphire Gemstone", sapphireLore, ChatColor.BLUE, Material.BLUE_STAINED_GLASS, 10240));
     }
 
 }
