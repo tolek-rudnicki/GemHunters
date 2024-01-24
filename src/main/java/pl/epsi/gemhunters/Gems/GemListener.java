@@ -1,8 +1,14 @@
 package pl.epsi.gemhunters.Gems;
 
+import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -11,10 +17,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerPickupItemEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
@@ -37,6 +40,9 @@ public class GemListener implements Listener {
     private AmethystGem amethyst = new AmethystGem();
     private JasperGem jasper = new JasperGem();
     private TopazGem topaz = new TopazGem();
+    private JadeGem jade = new JadeGem();
+    private AmberGem amber = new AmberGem();
+    private SapphireGem sapphire = new SapphireGem();
 
     @EventHandler
     public void onLeftClick(PlayerInteractEvent event) {
@@ -53,10 +59,10 @@ public class GemListener implements Listener {
                         for (Gem gem : gems) {
                             if (gem.getDisplayName().equalsIgnoreCase(i.getItemMeta().getDisplayName())) {
                                 gem.ability2(p);
+                                event.setCancelled(true);
                                 return;
                             }
                         }
-                        event.setCancelled(true);
                     }
                 }
             }
@@ -108,6 +114,8 @@ public class GemListener implements Listener {
                     event.setDamage(event.getDamage() * 1.5);
                     jasper.incrementHits(p);
                 }
+            } else if (jade.playerInAbility1(p)) {
+                event.setDamage(event.getDamage() * 1.1);
             }
         }
     }
@@ -123,20 +131,72 @@ public class GemListener implements Listener {
         if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             for (ItemStack gemstone : gemstones) {
                 if(i.getItemMeta().getDisplayName().equalsIgnoreCase(gemstone.getItemMeta().getDisplayName())) {
-                    event.setCancelled(true);
-
                     for (Gem gem : gems) {
                         if (gem.getDisplayName().equalsIgnoreCase(itemName)) {
                             if (p.isSneaking()) {
                                 gem.ability3(p);
+                                event.setCancelled(true);
                             } else {
                                 gem.ability1(p);
+                                event.setCancelled(true);
                             }
                             return;
                         }
                     }
                 }
             }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerMove(PlayerMoveEvent event) {
+        Player p = event.getPlayer();
+        UUID uuid = p.getUniqueId();
+        Location npc1Loc = p.getLocation().clone().add(2, 0, 0);
+        Location npc2Loc = p.getLocation().clone().subtract(2, 0, 0);
+
+        if (SapphireGem.npcsForPlayer.get(uuid) != null) {
+            List<ServerPlayer> npcs = SapphireGem.npcsForPlayer.get(uuid);
+            ServerPlayer npc1 = npcs.get(0);
+            ServerPlayer npc2 = npcs.get(1);
+
+
+            for (Entity e : p.getNearbyEntities(25, 25, 25)) {
+                if (e instanceof Player) {
+                    Player pe = (Player) e;
+                    ServerGamePacketListenerImpl pes = ((CraftPlayer) pe).getHandle().connection;
+
+                    // pe
+                    pes.send(new ClientboundMoveEntityPacket.Pos(npc1.getId(), (short) npc1Loc.getX(), (short) npc1Loc.getY(), (short)
+                            npc1Loc.getZ(), false
+                    ));
+                    pes.send(new ClientboundRotateHeadPacket(npc1, (byte) npc1Loc.getYaw()));
+                    pes.send(new ClientboundMoveEntityPacket.Rot(npc1.getId(), (byte) npc1Loc.getYaw(), (byte) npc1Loc.getPitch(), false));
+
+                    pes.send(new ClientboundMoveEntityPacket.Pos(npc2.getId(), (short) npc2Loc.getX(), (short) npc2Loc.getY(), (short)
+                            npc2Loc.getZ(), false
+                    ));
+                    pes.send(new ClientboundRotateHeadPacket(npc2, (byte) npc2Loc.getYaw()));
+                    pes.send(new ClientboundMoveEntityPacket.Rot(npc2.getId(), (byte) npc2Loc.getYaw(), (byte) npc2Loc.getPitch(), false));
+                }
+            }
+            //p.sendMessage("breh");
+            ServerGamePacketListenerImpl ps = ((CraftPlayer) p).getHandle().connection;
+
+            ps.send(new ClientboundMoveEntityPacket.Pos(npc1.getId(), (short) npc1Loc.getX(), (short) npc1Loc.getY(), (short)
+                    npc1Loc.getZ(), false
+            ));
+            //npc1.teleportTo(npc1Loc.getX(), npc1Loc.getY(), npc1Loc.getZ());
+            ps.send(new ClientboundRotateHeadPacket(npc1, (byte) npc1Loc.getYaw()));
+            ps.send(new ClientboundMoveEntityPacket.Rot(npc1.getId(), (byte) npc1Loc.getYaw(), (byte) npc1Loc.getPitch(), false));
+
+            ps.send(new ClientboundMoveEntityPacket.Pos(npc2.getId(), (short) npc2Loc.getX(), (short) npc2Loc.getY(), (short)
+                    npc2Loc.getZ(), false
+            ));
+            //npc2.teleportTo(npc2Loc.getX(), npc2Loc.getY(), npc2Loc.getZ());
+            ps.send(new ClientboundRotateHeadPacket(npc2, (byte) npc2Loc.getYaw()));
+            ps.send(new ClientboundMoveEntityPacket.Rot(npc2.getId(), (byte) npc2Loc.getYaw(), (byte) npc2Loc.getPitch(), false));
+
         }
     }
 
@@ -347,77 +407,15 @@ public class GemListener implements Listener {
         gems.add(new AmethystGem());
         gems.add(new JasperGem());
         gems.add(new TopazGem());
+        gems.add(new JadeGem());
+        gems.add(new AmberGem());
+        gems.add(new SapphireGem());
 
         for (Gem gem : gems) {
             gemstones.add(gem.generateItemStack());
         }
 
         startGemstoneTimerDisplay();
-
-//        // JADE
-//        List<String> jadeLore = new ArrayList<>();
-//        jadeLore.add(" ");
-//        jadeLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-//        jadeLore.add(ChatColor.GRAY + "Boost you in to the air!");
-//        jadeLore.add(" ");
-//        jadeLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-//        jadeLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-//        jadeLore.add(ChatColor.GRAY + "Boost you in to the air!");
-//        jadeLore.add(" ");
-//        jadeLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-//        jadeLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-//        jadeLore.add(ChatColor.GRAY + "Boost you in to the air!");
-//        jadeLore.add(" ");
-//        jadeLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-//        jadeLore.add(" ");
-//        jadeLore.add(ChatColor.GREEN + "After 5 deaths, your gem shatters, ");
-//        jadeLore.add(ChatColor.GREEN + "which gives you negative potion effects");
-//        jadeLore.add(ChatColor.GREEN + "that you can get rid of, by crafting a new gem");
-//        jadeLore.add(ChatColor.GREEN + "in the Gemstone Grinder!");
-//        // AMBER
-//        List<String> amberLore = new ArrayList<>();
-//        amberLore.add(" ");
-//        amberLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-//        amberLore.add(ChatColor.GRAY + "Boost you in to the air!");
-//        amberLore.add(" ");
-//        amberLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-//        amberLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-//        amberLore.add(ChatColor.GRAY + "Boost you in to the air!");
-//        amberLore.add(" ");
-//        amberLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-//        amberLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-//        amberLore.add(ChatColor.GRAY + "Boost you in to the air!");
-//        amberLore.add(" ");
-//        amberLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-//        amberLore.add(" ");
-//        amberLore.add(ChatColor.GOLD + "After 5 deaths, your gem shatters, ");
-//        amberLore.add(ChatColor.GOLD + "which gives you negative potion effects");
-//        amberLore.add(ChatColor.GOLD + "that you can get rid of, by crafting a new gem");
-//        amberLore.add(ChatColor.GOLD + "in the Gemstone Grinder!");
-//        // SAPPHIRE
-//        List<String> sapphireLore = new ArrayList<>();
-//        sapphireLore.add(" ");
-//        sapphireLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "RIGHT CLICK");
-//        sapphireLore.add(ChatColor.GRAY + "Boost you in to the air!");
-//        sapphireLore.add(" ");
-//        sapphireLore.add(ChatColor.DARK_GRAY + "Cooldown: 5s");
-//        sapphireLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "LEFT CLICK");
-//        sapphireLore.add(ChatColor.GRAY + "Boost you in to the air!");
-//        sapphireLore.add(" ");
-//        sapphireLore.add(ChatColor.DARK_GRAY + "Cooldown: 1min");
-//        sapphireLore.add(ChatColor.GOLD + "Ability: Light As A Feather " + ChatColor.RESET + ChatColor.BOLD + "" + ChatColor.YELLOW + "SHIFT + RIGHT CLICK");
-//        sapphireLore.add(ChatColor.GRAY + "Boost you in to the air!");
-//        sapphireLore.add(" ");
-//        sapphireLore.add(ChatColor.DARK_GRAY + "Cooldown: 5min");
-//        sapphireLore.add(" ");
-//        sapphireLore.add(ChatColor.BLUE + "After 5 deaths, your gem shatters, ");
-//        sapphireLore.add(ChatColor.BLUE + "which gives you negative potion effects");
-//        sapphireLore.add(ChatColor.BLUE + "that you can get rid of, by crafting a new gem");
-//        sapphireLore.add(ChatColor.BLUE + "in the Gemstone Grinder!");
-
-//        gemstones.add(generateGem("Jade Gemstone", jadeLore, ChatColor.GREEN, Material.LIME_STAINED_GLASS, 10240));
-//        gemstones.add(generateGem("Amber Gemstone", amberLore, ChatColor.GOLD, Material.ORANGE_STAINED_GLASS, 10240));
-//        gemstones.add(generateGem("Sapphire Gemstone", sapphireLore, ChatColor.BLUE, Material.BLUE_STAINED_GLASS, 10240));
     }
 
 }

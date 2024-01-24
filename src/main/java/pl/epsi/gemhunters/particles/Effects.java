@@ -116,14 +116,12 @@ public class Effects {
 
     public int startCircle(Entity player, Particle particles, int radius) {
         taskID = Bukkit.getScheduler().scheduleSyncRepeatingTask(Main.getPlugin(Main.class), new Runnable() {
-            double var = 0;
-            Location loc, first, second;
+            Location loc, first;
             ParticleData particle = new ParticleData(player.getUniqueId());
 
             @Override
             public void run() {
                 if(!particle.hasID()) { particle.setID(taskID); return; }
-                var += Math.PI / 16;
                 loc = player.getLocation();
                 double u = loc.getY();
 
@@ -131,10 +129,8 @@ public class Effects {
                 while (a < 360) {
                     first = loc.clone().add(Math.cos(a) * radius, u, Math.sin(a) * radius);
                     first.setY(u);
-                    //player.sendMessage(a + "!");
-                    //player.sendMessage(first + "!");
-                    //player.getWorld().getBlockAt(first).setType(Material.BLACK_CONCRETE);
-                    player.getWorld().spawnParticle(Particle.FLAME, first, 0);
+
+                    player.getWorld().spawnParticle(particles, first, 0);
                     a += 5;
                 }
             }
